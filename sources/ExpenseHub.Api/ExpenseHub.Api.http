@@ -1,9 +1,221 @@
-@ExpenseHub_Api_HostAddress = http://localhost:5245
+# Execute em ordem na extensão REST Client do VS Code.
+# Credenciais vêm do ambiente do processo que abriu o editor.
+# Após cadastrar e listar usuários como Admin, copie os ids para as variáveis
+# EXPENSEHUB_EMPLOYEE_ID, EXPENSEHUB_APPROVER_ID, EXPENSEHUB_FINANCE_ID e
+# EXPENSEHUB_AUDITOR_ID antes de atribuir roles. Faça NOVO LOGIN depois.
+@host = http://localhost:5245
+@adminToken = {{adminLogin.response.body.$.accessToken}}
+@employeeToken = {{employeeLogin.response.body.$.accessToken}}
+@approverToken = {{approverLogin.response.body.$.accessToken}}
+@financeToken = {{financeLogin.response.body.$.accessToken}}
+@auditorToken = {{auditorLogin.response.body.$.accessToken}}
+@employeeId = {{$processEnv EXPENSEHUB_EMPLOYEE_ID}}
+@approverId = {{$processEnv EXPENSEHUB_APPROVER_ID}}
+@financeId = {{$processEnv EXPENSEHUB_FINANCE_ID}}
+@auditorId = {{$processEnv EXPENSEHUB_AUDITOR_ID}}
+@expenseId = {{createExpense.response.body.$.id}}
+@rejectedExpenseId = {{createRejectedExpense.response.body.$.id}}
+@expenseDate = {{$processEnv EXPENSEHUB_EXPENSE_DATE}}
+@categoryId = 1
 
-GET {{ExpenseHub_Api_HostAddress}}/health
-Accept: application/json
+### Saúde
+GET {{host}}/health
 
-###
+### Login Admin: token bearer do Identity
+# @name adminLogin
+POST {{host}}/login
+Content-Type: application/json
 
-# Os endpoints do checkpoint estão definidos em docs/REQUISITOS.md.
-# Implemente e adicione aqui as requisições usadas para validar cada issue.
+{
+  "email": "{{$processEnv EXPENSEHUB_ADMIN_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_ADMIN_PASSWORD}}"
+}
+
+### Registrar Employee sem roles
+POST {{host}}/register
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_EMPLOYEE_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_EMPLOYEE_PASSWORD}}"
+}
+
+### Registrar Approver sem roles
+POST {{host}}/register
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_APPROVER_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_APPROVER_PASSWORD}}"
+}
+
+### Registrar Finance sem roles
+POST {{host}}/register
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_FINANCE_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_FINANCE_PASSWORD}}"
+}
+
+### Registrar Auditor sem roles
+POST {{host}}/register
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_AUDITOR_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_AUDITOR_PASSWORD}}"
+}
+
+### Admin lista usuários para obter ids
+GET {{host}}/api/admin/users
+Authorization: Bearer {{adminToken}}
+
+### Atribuir Employee
+PUT {{host}}/api/admin/users/{{employeeId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "roles": ["Employee"] }
+
+### Atribuir Approver
+PUT {{host}}/api/admin/users/{{approverId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "roles": ["Approver"] }
+
+### Atribuir Finance
+PUT {{host}}/api/admin/users/{{financeId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "roles": ["Finance"] }
+
+### Atribuir Auditor
+PUT {{host}}/api/admin/users/{{auditorId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "roles": ["Auditor"] }
+
+### Novo login Employee após mudar roles
+# @name employeeLogin
+POST {{host}}/login
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_EMPLOYEE_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_EMPLOYEE_PASSWORD}}"
+}
+
+### Novo login Approver
+# @name approverLogin
+POST {{host}}/login
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_APPROVER_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_APPROVER_PASSWORD}}"
+}
+
+### Novo login Finance
+# @name financeLogin
+POST {{host}}/login
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_FINANCE_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_FINANCE_PASSWORD}}"
+}
+
+### Novo login Auditor
+# @name auditorLogin
+POST {{host}}/login
+Content-Type: application/json
+
+{
+  "email": "{{$processEnv EXPENSEHUB_AUDITOR_EMAIL}}",
+  "password": "{{$processEnv EXPENSEHUB_AUDITOR_PASSWORD}}"
+}
+
+### Categorias autenticadas
+GET {{host}}/api/categories
+Authorization: Bearer {{employeeToken}}
+
+### Criar Draft; dono, id, estado e horários vêm do servidor
+# @name createExpense
+POST {{host}}/api/expenses
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "description": "Transporte para visita ao cliente",
+  "amount": 42.50,
+  "expenseDate": "{{expenseDate}}",
+  "categoryId": {{categoryId}}
+}
+
+### Editar Draft próprio
+PUT {{host}}/api/expenses/{{expenseId}}
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "description": "Transporte atualizado para visita ao cliente",
+  "amount": 45.50,
+  "expenseDate": "{{expenseDate}}",
+  "categoryId": {{categoryId}}
+}
+
+### Listar despesas visíveis ao ator
+GET {{host}}/api/expenses
+Authorization: Bearer {{employeeToken}}
+
+### Detalhe próprio
+GET {{host}}/api/expenses/{{expenseId}}
+Authorization: Bearer {{employeeToken}}
+
+### Draft -> Submitted
+POST {{host}}/api/expenses/{{expenseId}}/submit
+Authorization: Bearer {{employeeToken}}
+
+### Submitted -> Approved (Approver diferente do dono)
+POST {{host}}/api/expenses/{{expenseId}}/approve
+Authorization: Bearer {{approverToken}}
+
+### Approved -> Paid (Finance diferente do dono; simulado)
+POST {{host}}/api/expenses/{{expenseId}}/pay
+Authorization: Bearer {{financeToken}}
+
+### Histórico completo
+GET {{host}}/api/expenses/{{expenseId}}/history
+Authorization: Bearer {{auditorToken}}
+
+### Outra despesa para reprovação
+# @name createRejectedExpense
+POST {{host}}/api/expenses
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "description": "Refeição durante visita ao cliente",
+  "amount": 32.00,
+  "expenseDate": "{{expenseDate}}",
+  "categoryId": {{categoryId}}
+}
+
+### Enviar outra despesa
+POST {{host}}/api/expenses/{{rejectedExpenseId}}/submit
+Authorization: Bearer {{employeeToken}}
+
+### Submitted -> Rejected (justificativa de 10 a 500 caracteres)
+POST {{host}}/api/expenses/{{rejectedExpenseId}}/reject
+Authorization: Bearer {{approverToken}}
+Content-Type: application/json
+
+{ "justification": "Comprovante apresentado não atende à política" }
+
+### Histórico da reprovação
+GET {{host}}/api/expenses/{{rejectedExpenseId}}/history
+Authorization: Bearer {{auditorToken}}
