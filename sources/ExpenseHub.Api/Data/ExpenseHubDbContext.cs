@@ -1,4 +1,6 @@
 using ExpenseHub.Api.Domain;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExpenseHub.Api.Data;
@@ -6,7 +8,7 @@ namespace ExpenseHub.Api.Data;
 /// <summary>
 /// Contexto relacional do ExpenseHub.
 /// </summary>
-internal sealed class ExpenseHubDbContext : DbContext
+internal sealed class ExpenseHubDbContext : IdentityDbContext<IdentityUser>
 {
     public ExpenseHubDbContext(DbContextOptions<ExpenseHubDbContext> options)
         : base(options)
