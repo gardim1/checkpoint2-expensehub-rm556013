@@ -34,6 +34,8 @@ $env:SeedAdmin__Password = Read-Host 'Senha do Admin' -MaskInput
 
 A senha deve atender à política do Identity (ao menos 6 caracteres, maiúscula, minúscula, dígito e caractere não alfanumérico). Sem as configurações necessárias, o seed não cria uma nova conta Admin. Alterar a senha de configuração depois de criar a conta não redefine sua senha persistida.
 
+Se `SeedAdmin:Email` já pertencer a um usuário sem a role Admin, o seed apenas registra um warning e não promove essa conta, mesmo com senha configurada. Para criar o Admin inicial, configure um e-mail ainda não cadastrado. Uma conta Admin já existente é preservada.
+
 Para atualizar o banco manualmente, a partir da raiz:
 
 ```shell
