@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using ExpenseHub.Api.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,5 +16,6 @@ internal static class DatabaseInitializer
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
         ExpenseHubDbContext context = scope.ServiceProvider.GetRequiredService<ExpenseHubDbContext>();
         await context.Database.MigrateAsync();
+        await IdentitySeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
     }
 }
