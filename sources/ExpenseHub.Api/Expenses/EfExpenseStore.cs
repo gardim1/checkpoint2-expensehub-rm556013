@@ -15,7 +15,7 @@ internal sealed class EfExpenseStore(ExpenseHubDbContext context) : IExpenseStor
 {
     public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken, Expression<Func<Expense, bool>>? predicate = null)
     {
-        IQueryable<Expense> query = context.Expenses.AsNoTracking().Where(expense => expense.Id == id);
+        IQueryable<Expense> query = context.Expenses.AsNoTracking().Include(expense => expense.Payment).Where(expense => expense.Id == id);
         if (predicate is not null)
         {
             query = query.Where(predicate);
@@ -25,7 +25,7 @@ internal sealed class EfExpenseStore(ExpenseHubDbContext context) : IExpenseStor
     }
 
     public Task<List<Expense>> ListAsync(Expression<Func<Expense, bool>> predicate, CancellationToken cancellationToken) =>
-        context.Expenses.AsNoTracking().Where(predicate).OrderBy(expense => expense.CreatedAtUtc).ThenBy(expense => expense.Id).ToListAsync(cancellationToken);
+        context.Expenses.AsNoTracking().Include(expense => expense.Payment).Where(predicate).OrderBy(expense => expense.CreatedAtUtc).ThenBy(expense => expense.Id).ToListAsync(cancellationToken);
 
     public Task<List<ExpenseCategory>> GetCategoriesAsync(CancellationToken cancellationToken) =>
         context.ExpenseCategories.AsNoTracking().OrderBy(category => category.Id).ToListAsync(cancellationToken);

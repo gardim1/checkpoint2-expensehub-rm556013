@@ -14,6 +14,53 @@ namespace ExpenseHub.Api.Expenses;
 
 internal sealed class ExpenseService(IExpenseStore store, TimeProvider timeProvider)
 {
+    public async Task<ServiceResult<ExpenseResponse>> PayAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default)
+    {
+        if (!actor.HasRole(AppRoles.Finance))
+        {
+            return ServiceError.Forbidden("Finance role required.");
+        }
+
+        Expense? expense = await store.FindAsync(id, cancellationToken);
+        ServiceError? access = NonOwnerCommandError(actor, expense, ExpenseStatus.Approved);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        Expense approved = expense!;
+        Guid originalStamp = approved.ConcurrencyStamp;
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        approved.Status = ExpenseStatus.Paid;
+        approved.UpdatedAtUtc = now;
+        approved.ConcurrencyStamp = Guid.NewGuid();
+        store.Update(approved, originalStamp);
+        var payment = new PaymentRecord
+        {
+            Id = Guid.NewGuid(),
+            ExpenseId = approved.Id,
+            Amount = approved.Amount,
+            PaidById = actor.UserId,
+            PaidAtUtc = now,
+        };
+        store.Add(payment);
+        approved.Payment = payment;
+        store.Add(History(approved, actor, ExpenseHistoryAction.Paid, ExpenseStatus.Approved, now));
+        return await SaveAsync(approved, cancellationToken);
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<ExpenseHistoryResponse>>> GetHistoryAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default)
+    {
+        ServiceResult<ExpenseResponse> visible = await GetAsync(actor, id, cancellationToken);
+        if (!visible.Succeeded)
+        {
+            return visible.Error;
+        }
+
+        List<ExpenseHistory> histories = await store.GetHistoryAsync(id, cancellationToken);
+        return ServiceResult<IReadOnlyList<ExpenseHistoryResponse>>.Success(histories.Select(ExpenseHistoryResponse.FromHistory).ToList());
+    }
+
     public Task<ServiceResult<ExpenseResponse>> ApproveAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default) =>
         DecideAsync(actor, id, null, cancellationToken);
 
