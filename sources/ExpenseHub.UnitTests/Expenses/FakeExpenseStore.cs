@@ -30,8 +30,8 @@ internal sealed class FakeExpenseStore : IExpenseStore
 
     public int Saves { get; private set; }
 
-    public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken) =>
-        Task.FromResult(Expenses.Where(expense => expense.Id == id).Select(Clone).FirstOrDefault());
+    public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken, Expression<Func<Expense, bool>>? predicate = null) =>
+        Task.FromResult(Expenses.AsQueryable().Where(expense => expense.Id == id).Where(predicate ?? (expense => true)).Select(Clone).FirstOrDefault());
 
     public Task<List<Expense>> ListAsync(Expression<Func<Expense, bool>> predicate, CancellationToken cancellationToken) =>
         Task.FromResult(Expenses.AsQueryable().Where(predicate).Select(Clone).ToList());

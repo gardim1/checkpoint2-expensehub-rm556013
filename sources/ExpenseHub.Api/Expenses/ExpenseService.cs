@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ExpenseHub.Api.Common;
@@ -13,6 +14,59 @@ namespace ExpenseHub.Api.Expenses;
 
 internal sealed class ExpenseService(IExpenseStore store, TimeProvider timeProvider)
 {
+    public async Task<ServiceResult<ExpenseResponse>> SubmitAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default)
+    {
+        if (!actor.HasRole(AppRoles.Employee))
+        {
+            return ServiceError.Forbidden("Employee role required.");
+        }
+
+        Expense? expense = await store.FindAsync(id, cancellationToken);
+        ServiceError? access = OwnerCommandError(actor, expense);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        Expense draft = expense!;
+        Guid originalStamp = draft.ConcurrencyStamp;
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        draft.Status = ExpenseStatus.Submitted;
+        draft.SubmittedAtUtc = now;
+        draft.UpdatedAtUtc = now;
+        draft.ConcurrencyStamp = Guid.NewGuid();
+        store.Update(draft, originalStamp);
+        store.Add(History(draft, actor, ExpenseHistoryAction.Submitted, ExpenseStatus.Draft, now));
+        return await SaveAsync(draft, cancellationToken);
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<ExpenseResponse>>> ListAsync(CurrentActor actor, CancellationToken cancellationToken = default)
+    {
+        if (!CanRead(actor))
+        {
+            return ServiceError.Forbidden("A functional reading role is required.");
+        }
+
+        List<Expense> expenses = await store.ListAsync(ExpenseVisibility.For(actor), cancellationToken);
+        return ServiceResult<IReadOnlyList<ExpenseResponse>>.Success(expenses.Select(ExpenseResponse.FromExpense).ToList());
+    }
+
+    public async Task<ServiceResult<ExpenseResponse>> GetAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default)
+    {
+        if (!CanRead(actor))
+        {
+            return ServiceError.Forbidden("A functional reading role is required.");
+        }
+
+        Expense? expense = await store.FindAsync(id, cancellationToken, ExpenseVisibility.For(actor));
+        return expense is null
+            ? ServiceError.NotFound("Expense not found.")
+            : ServiceResult<ExpenseResponse>.Success(ExpenseResponse.FromExpense(expense));
+    }
+
+    private static bool CanRead(CurrentActor actor) => actor.HasRole(AppRoles.Employee) || actor.HasRole(AppRoles.Approver) ||
+        actor.HasRole(AppRoles.Finance) || actor.HasRole(AppRoles.Auditor);
+
     public async Task<ServiceResult<ExpenseResponse>> CreateAsync(CurrentActor actor, ExpenseInput input, CancellationToken cancellationToken = default)
     {
         if (!actor.HasRole(AppRoles.Employee))

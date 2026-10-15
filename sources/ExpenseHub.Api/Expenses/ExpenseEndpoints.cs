@@ -31,6 +31,9 @@ internal static class ExpenseEndpoints
         endpoints.MapPost("/api/expenses", CreateAsync).WithValidation<ExpenseInput>().RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee));
         endpoints.MapPut("/api/expenses/{id:guid}", UpdateAsync).WithValidation<ExpenseInput>().RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee));
         endpoints.MapGet("/api/categories", CategoriesAsync).RequireAuthorization();
+        endpoints.MapPost("/api/expenses/{id:guid}/submit", SubmitAsync).RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee));
+        endpoints.MapGet("/api/expenses", ListAsync).RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee, AppRoles.Approver, AppRoles.Finance, AppRoles.Auditor));
+        endpoints.MapGet("/api/expenses/{id:guid}", GetAsync).RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee, AppRoles.Approver, AppRoles.Finance, AppRoles.Auditor));
         return endpoints;
     }
 
@@ -49,6 +52,15 @@ internal static class ExpenseEndpoints
     }
 
     private static IResult ToHttpResult<T>(ServiceResult<T> result) => result.Succeeded ? Results.Ok(result.Value) : result.Error.ToProblem();
+
+    private static async Task<IResult> SubmitAsync(Guid id, ClaimsPrincipal user, ExpenseService service, CancellationToken cancellationToken) =>
+        ToHttpResult(await service.SubmitAsync(CurrentActor.FromPrincipal(user), id, cancellationToken));
+
+    private static async Task<IResult> ListAsync(ClaimsPrincipal user, ExpenseService service, CancellationToken cancellationToken) =>
+        ToHttpResult(await service.ListAsync(CurrentActor.FromPrincipal(user), cancellationToken));
+
+    private static async Task<IResult> GetAsync(Guid id, ClaimsPrincipal user, ExpenseService service, CancellationToken cancellationToken) =>
+        ToHttpResult(await service.GetAsync(CurrentActor.FromPrincipal(user), id, cancellationToken));
 
     private static async Task<IResult> CategoriesAsync(IExpenseStore store, CancellationToken cancellationToken)
     {

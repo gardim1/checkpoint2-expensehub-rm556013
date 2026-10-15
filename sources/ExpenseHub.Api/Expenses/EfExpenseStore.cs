@@ -13,8 +13,16 @@ namespace ExpenseHub.Api.Expenses;
 
 internal sealed class EfExpenseStore(ExpenseHubDbContext context) : IExpenseStore
 {
-    public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken) =>
-        context.Expenses.AsNoTracking().SingleOrDefaultAsync(expense => expense.Id == id, cancellationToken);
+    public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken, Expression<Func<Expense, bool>>? predicate = null)
+    {
+        IQueryable<Expense> query = context.Expenses.AsNoTracking().Where(expense => expense.Id == id);
+        if (predicate is not null)
+        {
+            query = query.Where(predicate);
+        }
+
+        return query.SingleOrDefaultAsync(cancellationToken);
+    }
 
     public Task<List<Expense>> ListAsync(Expression<Func<Expense, bool>> predicate, CancellationToken cancellationToken) =>
         context.Expenses.AsNoTracking().Where(predicate).OrderBy(expense => expense.CreatedAtUtc).ThenBy(expense => expense.Id).ToListAsync(cancellationToken);
