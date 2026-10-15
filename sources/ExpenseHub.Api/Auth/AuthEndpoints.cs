@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using ExpenseHub.Api.Common;
 using ExpenseHub.Api.Dtos;
+using ExpenseHub.Api.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -14,6 +15,9 @@ internal static class AuthEndpoints
     {
         endpoints.MapPost("/login", LoginAsync)
             .WithValidation<LoginRequest>()
+            .AllowAnonymous();
+        endpoints.MapPost("/register", RegisterAsync)
+            .WithValidation<RegisterRequest>()
             .AllowAnonymous();
         return endpoints;
     }
@@ -39,5 +43,14 @@ internal static class AuthEndpoints
         return Results.Problem(
             statusCode: StatusCodes.Status401Unauthorized,
             title: "Credenciais inválidas");
+    }
+
+    private static async Task<IResult> RegisterAsync(RegisterRequest request, UserManager<IdentityUser> userManager)
+    {
+        var user = new IdentityUser { UserName = request.Email, Email = request.Email };
+        IdentityResult result = await userManager.CreateAsync(user, request.Password);
+        return result.Succeeded
+            ? Results.Ok(new UserResponse(user.Id, user.Email, []))
+            : result.ToValidationProblem();
     }
 }
