@@ -32,23 +32,26 @@ internal static class IdentitySeeder
         }
 
         IdentityUser? admin = await userManager.FindByEmailAsync(email);
-        if (admin is null)
+        if (admin is not null)
         {
-            string? password = configuration["SeedAdmin:Password"];
-            if (string.IsNullOrWhiteSpace(password))
+            if (!await userManager.IsInRoleAsync(admin, AppRoles.Admin))
             {
-                logger.LogWarning("SeedAdmin:Password não configurado; nenhuma conta Admin criada.");
-                return;
+                logger.LogWarning("SeedAdmin:Email pertence a um usuário preexistente sem Admin; nenhuma promoção realizada.");
             }
 
-            admin = new IdentityUser { UserName = email, Email = email };
-            EnsureSucceeded(await userManager.CreateAsync(admin, password));
+            return;
         }
 
-        if (!await userManager.IsInRoleAsync(admin, AppRoles.Admin))
+        string? password = configuration["SeedAdmin:Password"];
+        if (string.IsNullOrWhiteSpace(password))
         {
-            EnsureSucceeded(await userManager.AddToRoleAsync(admin, AppRoles.Admin));
+            logger.LogWarning("SeedAdmin:Password não configurado; nenhuma conta Admin criada.");
+            return;
         }
+
+        admin = new IdentityUser { UserName = email, Email = email };
+        EnsureSucceeded(await userManager.CreateAsync(admin, password));
+        EnsureSucceeded(await userManager.AddToRoleAsync(admin, AppRoles.Admin));
     }
 
     private static void EnsureSucceeded(IdentityResult result)

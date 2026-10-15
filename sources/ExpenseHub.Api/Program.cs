@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using ExpenseHub.Api.Admin;
 using ExpenseHub.Api.Auth;
 using ExpenseHub.Api.Data;
 using Microsoft.AspNetCore.Builder;
@@ -41,6 +42,7 @@ internal static class Program
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
             .WithName("GetHealth");
         app.MapAuthEndpoints();
+        app.MapAdminEndpoints();
 
         await app.InitializeDatabaseAsync();
         await app.RunAsync();
