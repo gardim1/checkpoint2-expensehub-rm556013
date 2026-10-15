@@ -1,7 +1,10 @@
 using System.Threading.Tasks;
+using ExpenseHub.Api.Admin;
+using ExpenseHub.Api.Auth;
 using ExpenseHub.Api.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,8 +21,18 @@ internal static class Program
         builder.Services.AddProblemDetails();
         builder.Services.AddDbContext<ExpenseHubDbContext>(options =>
             options.UseSqlite(builder.Configuration.GetConnectionString("ExpenseHub")));
+        builder.Services.AddAuthentication(IdentityConstants.BearerScheme)
+            .AddBearerToken(IdentityConstants.BearerScheme);
+        builder.Services.AddAuthorization();
+        builder.Services.AddIdentityCore<IdentityUser>(options => options.User.RequireUniqueEmail = true)
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<ExpenseHubDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
 
         WebApplication app = builder.Build();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         if (app.Environment.IsDevelopment())
         {
@@ -28,6 +41,8 @@ internal static class Program
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
             .WithName("GetHealth");
+        app.MapAuthEndpoints();
+        app.MapAdminEndpoints();
 
         await app.InitializeDatabaseAsync();
         await app.RunAsync();
