@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using ExpenseHub.Api.Admin;
 using ExpenseHub.Api.Auth;
 using ExpenseHub.Api.Data;
+using ExpenseHub.Api.Expenses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -30,6 +31,8 @@ internal static class Program
             .AddSignInManager()
             .AddDefaultTokenProviders();
 
+        builder.Services.AddExpenseFeatures();
+
         WebApplication app = builder.Build();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -43,6 +46,7 @@ internal static class Program
             .WithName("GetHealth");
         app.MapAuthEndpoints();
         app.MapAdminEndpoints();
+        app.MapExpenseEndpoints();
 
         await app.InitializeDatabaseAsync();
         await app.RunAsync();
