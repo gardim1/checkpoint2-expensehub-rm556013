@@ -49,7 +49,11 @@ function Invoke-Api {
         throw "Etapa obrigatória falhou: $Name (HTTP $([int]$response.StatusCode))."
     }
     if ($response.Content -and $passed) {
-        return ConvertFrom-Json -InputObject $response.Content -AsHashtable -Depth 100
+        $content = $response.Content
+        if ($content -is [byte[]]) {
+            $content = [Text.Encoding]::UTF8.GetString($content)
+        }
+        return ConvertFrom-Json -InputObject $content -AsHashtable -Depth 100
     }
     return $null
 }
