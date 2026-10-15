@@ -30,6 +30,8 @@ internal sealed class FakeExpenseStore : IExpenseStore
 
     public int Saves { get; private set; }
 
+    public List<(Guid ExpenseId, Guid OriginalStamp)> Updates { get; } = [];
+
     public Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken, Expression<Func<Expense, bool>>? predicate = null) =>
         Task.FromResult(Expenses.AsQueryable().Where(expense => expense.Id == id).Where(predicate ?? (expense => true)).Select(Clone).FirstOrDefault());
 
@@ -45,7 +47,11 @@ internal sealed class FakeExpenseStore : IExpenseStore
 
     public void Add(Expense expense) => _pendingExpenses.Add(expense);
 
-    public void Update(Expense expense, Guid originalStamp) => _pendingExpenses.Add(expense);
+    public void Update(Expense expense, Guid originalStamp)
+    {
+        Updates.Add((expense.Id, originalStamp));
+        _pendingExpenses.Add(expense);
+    }
 
     public void Add(ExpenseHistory history) => _pendingHistory.Add(history);
 
