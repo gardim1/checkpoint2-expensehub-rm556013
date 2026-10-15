@@ -14,6 +14,64 @@ namespace ExpenseHub.Api.Expenses;
 
 internal sealed class ExpenseService(IExpenseStore store, TimeProvider timeProvider)
 {
+    public Task<ServiceResult<ExpenseResponse>> ApproveAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default) =>
+        DecideAsync(actor, id, null, cancellationToken);
+
+    public Task<ServiceResult<ExpenseResponse>> RejectAsync(CurrentActor actor, Guid id, RejectExpenseInput input, CancellationToken cancellationToken = default) =>
+        DecideAsync(actor, id, input, cancellationToken);
+
+    private async Task<ServiceResult<ExpenseResponse>> DecideAsync(CurrentActor actor, Guid id, RejectExpenseInput? rejection, CancellationToken cancellationToken)
+    {
+        if (!actor.HasRole(AppRoles.Approver))
+        {
+            return ServiceError.Forbidden("Approver role required.");
+        }
+
+        // Commands use the actual state, even if a prior decision removed it from the reading scope.
+        Expense? expense = await store.FindAsync(id, cancellationToken);
+        ServiceError? access = NonOwnerCommandError(actor, expense, ExpenseStatus.Submitted);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        string? justification = rejection?.Justification.Trim();
+        if (rejection is not null && justification!.Length is < 10 or > 500)
+        {
+            return ServiceError.Validation("Rejection justification must have 10 to 500 characters.");
+        }
+
+        Expense submitted = expense!;
+        Guid originalStamp = submitted.ConcurrencyStamp;
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        submitted.Status = rejection is null ? ExpenseStatus.Approved : ExpenseStatus.Rejected;
+        submitted.DecidedById = actor.UserId;
+        submitted.DecidedAtUtc = now;
+        submitted.RejectionReason = justification;
+        submitted.UpdatedAtUtc = now;
+        submitted.ConcurrencyStamp = Guid.NewGuid();
+        store.Update(submitted, originalStamp);
+        ExpenseHistory history = History(submitted, actor, rejection is null ? ExpenseHistoryAction.Approved : ExpenseHistoryAction.Rejected, ExpenseStatus.Submitted, now);
+        history.Justification = justification;
+        store.Add(history);
+        return await SaveAsync(submitted, cancellationToken);
+    }
+
+    private static ServiceError? NonOwnerCommandError(CurrentActor actor, Expense? expense, ExpenseStatus expectedStatus)
+    {
+        if (expense is null || (expense.Status == ExpenseStatus.Draft && expense.OwnerId != actor.UserId))
+        {
+            return ServiceError.NotFound("Expense not found.");
+        }
+
+        if (expense.OwnerId == actor.UserId)
+        {
+            return ServiceError.Forbidden("Owners cannot approve, reject or pay their own expense.");
+        }
+
+        return expense.Status == expectedStatus ? null : ServiceError.Conflict("Expense is not in the expected state.");
+    }
+
     public async Task<ServiceResult<ExpenseResponse>> SubmitAsync(CurrentActor actor, Guid id, CancellationToken cancellationToken = default)
     {
         if (!actor.HasRole(AppRoles.Employee))
