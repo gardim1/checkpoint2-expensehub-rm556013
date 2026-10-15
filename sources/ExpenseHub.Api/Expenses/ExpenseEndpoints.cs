@@ -1,0 +1,58 @@
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+using ExpenseHub.Api.Common;
+using ExpenseHub.Api.Dtos;
+using ExpenseHub.Api.Responses;
+using ExpenseHub.Api.Security;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace ExpenseHub.Api.Expenses;
+
+internal static class ExpenseEndpoints
+{
+    public static IServiceCollection AddExpenseFeatures(this IServiceCollection services)
+    {
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IExpenseStore, EfExpenseStore>();
+        services.AddScoped<ExpenseService>();
+        return services;
+    }
+
+    public static IEndpointRouteBuilder MapExpenseEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapPost("/api/expenses", CreateAsync).WithValidation<ExpenseInput>().RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee));
+        endpoints.MapPut("/api/expenses/{id:guid}", UpdateAsync).WithValidation<ExpenseInput>().RequireAuthorization(policy => policy.RequireRole(AppRoles.Employee));
+        endpoints.MapGet("/api/categories", CategoriesAsync).RequireAuthorization();
+        return endpoints;
+    }
+
+    private static async Task<IResult> CreateAsync(ClaimsPrincipal user, ExpenseInput input, ExpenseService service, CancellationToken cancellationToken)
+    {
+        ServiceResult<ExpenseResponse> result = await service.CreateAsync(CurrentActor.FromPrincipal(user), input, cancellationToken);
+        return result.Succeeded
+            ? Results.Created(string.Create(CultureInfo.InvariantCulture, $"/api/expenses/{result.Value.Id}"), result.Value)
+            : result.Error.ToProblem();
+    }
+
+    private static async Task<IResult> UpdateAsync(Guid id, ClaimsPrincipal user, ExpenseInput input, ExpenseService service, CancellationToken cancellationToken)
+    {
+        ServiceResult<ExpenseResponse> result = await service.UpdateAsync(CurrentActor.FromPrincipal(user), id, input, cancellationToken);
+        return ToHttpResult(result);
+    }
+
+    private static IResult ToHttpResult<T>(ServiceResult<T> result) => result.Succeeded ? Results.Ok(result.Value) : result.Error.ToProblem();
+
+    private static async Task<IResult> CategoriesAsync(IExpenseStore store, CancellationToken cancellationToken)
+    {
+        var categories = await store.GetCategoriesAsync(cancellationToken);
+        return Results.Ok(categories.Select(category => new CategoryResponse(category.Id, category.Name)));
+    }
+}
