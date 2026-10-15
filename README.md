@@ -156,9 +156,8 @@ O código foi gerado e assistido por agentes de IA sob coordenação do aluno. E
 ## Entrega e referência do template
 
 - Repositório público: https://github.com/gardim1/checkpoint2-expensehub-rm556013
-- SHA final: `<SHA>`
-- Execução de CI: `<link CI>`
-- Score final de qualidade: `<score>`
+- SHA final, link da execução de CI desse SHA e score do relatório `code-quality`: registrados na PR da I10 e no texto de entrega (o README não pode conter o SHA do próprio commit final).
+- Execuções do workflow: https://github.com/gardim1/checkpoint2-expensehub-rm556013/actions/workflows/build.yml
 
 O README original do professor informa prazo de **13/10/2026**. Esta entrega foi preparada em **14/10/2026**; a divergência fica registrada, sem presumir prorrogação ou aceite.
 
