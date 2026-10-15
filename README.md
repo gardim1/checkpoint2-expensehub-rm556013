@@ -91,3 +91,10 @@ Entregue:
 - documentação atualizada.
 
 O projeto deve compilar sem erros e ser entregue sem warnings para receber a pontuação integral de Qualidade de Código.
+
+## Persistência (implementação)
+
+- Provider: SQLite via `Microsoft.EntityFrameworkCore.Sqlite` 10.0.13 (sem servidor de banco).
+- Connection string `ConnectionStrings:ExpenseHub` em `appsettings.json` (`Data Source=expensehub.db`, arquivo local ignorado pelo Git).
+- As migrations ficam em `sources/ExpenseHub.Api/Data/Migrations` e são aplicadas automaticamente ao iniciar a API.
+- Alternativa manual: `dotnet tool install --global dotnet-ef --version 10.0.13` e `dotnet ef database update --project sources/ExpenseHub.Api`.
