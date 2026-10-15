@@ -9,7 +9,7 @@ namespace ExpenseHub.Api.Expenses;
 
 internal interface IExpenseStore
 {
-    Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken);
+    Task<Expense?> FindAsync(Guid id, CancellationToken cancellationToken, Expression<Func<Expense, bool>>? predicate = null);
 
     Task<List<Expense>> ListAsync(Expression<Func<Expense, bool>> predicate, CancellationToken cancellationToken);
 
