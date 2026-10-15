@@ -50,3 +50,8 @@ Desktop.ini
 appsettings.Development.json
 appsettings.Local.json
 secrets.json
+
+# Banco SQLite local e dados de execução
+*.db
+*.db-shm
+*.db-wal
