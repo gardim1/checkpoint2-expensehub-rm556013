@@ -15,6 +15,19 @@ namespace ExpenseHub.UnitTests.Reports;
 internal sealed class ReportContractTests
 {
     [TestMethod]
+    public void PersistedTimestampsRetainUtcIndicationInEnvelope()
+    {
+        ReportRequest report = ReportCalculationTests.Request();
+        report.CreatedAt = new DateTime(2026, 9, 30, 12, 0, 0, DateTimeKind.Unspecified);
+        report.StartedAt = report.CreatedAt;
+        report.CompletedAt = report.CreatedAt;
+        ReportResponse response = report.ToResponse();
+        Assert.AreEqual(DateTimeKind.Utc, response.CreatedAt.Kind);
+        Assert.AreEqual(DateTimeKind.Utc, response.StartedAt!.Value.Kind);
+        Assert.AreEqual(DateTimeKind.Utc, response.CompletedAt!.Value.Kind);
+    }
+
+    [TestMethod]
     public async Task DownloadUsesSavedResultAndPreservesExcelContractAfterExpenseChanges()
     {
         var store = new FakeReportStore();
