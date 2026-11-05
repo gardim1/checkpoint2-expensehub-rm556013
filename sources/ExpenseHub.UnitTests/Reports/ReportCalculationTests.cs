@@ -11,7 +11,7 @@ namespace ExpenseHub.UnitTests.Reports;
 [TestClass]
 internal sealed class ReportCalculationTests
 {
-    private static readonly string[] ExpectedStatuses = ["Draft", "Submitted", "Approved", "Rejected", "Paid"];
+    private static readonly string[] _expectedStatuses = ["Draft", "Submitted", "Approved", "Rejected", "Paid"];
 
     [TestMethod]
     public void MineUsesInclusiveExpenseDatesAndDecimalAmounts()
@@ -32,7 +32,7 @@ internal sealed class ReportCalculationTests
         ReportResult result = ReportCalculator.Calculate(Request(), [], DateTime.UtcNow);
         Assert.AreEqual(0, result.TotalCount);
         Assert.AreEqual(0m, result.TotalAmount);
-        CollectionAssert.AreEquivalent(ExpectedStatuses, result.ByStatus.Select(row => row.Status).ToArray());
+        CollectionAssert.AreEquivalent(_expectedStatuses, result.ByStatus.Select(row => row.Status).ToArray());
         Assert.IsTrue(result.ByStatus.All(row => row.Count == 0 && row.Amount == 0m));
     }
 

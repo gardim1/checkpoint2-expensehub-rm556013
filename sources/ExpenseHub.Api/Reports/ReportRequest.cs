@@ -33,5 +33,7 @@ internal sealed class ReportRequest
     [NotMapped]
     public ReportResult? Result => ResultJson is null ? null : JsonSerializer.Deserialize<ReportResult>(ResultJson);
 
-    public ReportResponse ToResponse() => new(Id, Scope, FromDate, ToDate, Status, CreatedAt, StartedAt, CompletedAt, Result, ErrorCode is null ? null : new ReportError(ErrorCode, ErrorMessage!));
+    public ReportResponse ToResponse() => new(Id, Scope, FromDate, ToDate, Status, DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc), AsUtc(StartedAt), AsUtc(CompletedAt), Result, ErrorCode is null ? null : new ReportError(ErrorCode, ErrorMessage!));
+
+    private static DateTime? AsUtc(DateTime? value) => value is DateTime instant ? DateTime.SpecifyKind(instant, DateTimeKind.Utc) : null;
 }
