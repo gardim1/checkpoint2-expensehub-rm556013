@@ -1,4 +1,5 @@
 using ExpenseHub.Api.Domain;
+using ExpenseHub.Api.Reports;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,8 @@ internal sealed class ExpenseHubDbContext : IdentityDbContext<IdentityUser>
     }
 
     public DbSet<Expense> Expenses => Set<Expense>();
+
+    public DbSet<ReportRequest> Reports => Set<ReportRequest>();
 
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
 
