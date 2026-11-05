@@ -3,6 +3,7 @@ using ExpenseHub.Api.Admin;
 using ExpenseHub.Api.Auth;
 using ExpenseHub.Api.Data;
 using ExpenseHub.Api.Expenses;
+using ExpenseHub.Api.Reports;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -32,6 +33,9 @@ internal static class Program
             .AddDefaultTokenProviders();
 
         builder.Services.AddExpenseFeatures();
+        builder.Services.AddScoped<IReportStore, EfReportStore>();
+        builder.Services.AddScoped<IReportPublisher, RabbitReportPublisher>();
+        builder.Services.AddScoped<ReportService>();
 
         WebApplication app = builder.Build();
         app.UseAuthentication();
@@ -47,6 +51,7 @@ internal static class Program
         app.MapAuthEndpoints();
         app.MapAdminEndpoints();
         app.MapExpenseEndpoints();
+        app.MapReportEndpoints();
 
         await app.InitializeDatabaseAsync();
         await app.RunAsync();
