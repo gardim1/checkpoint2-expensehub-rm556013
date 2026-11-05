@@ -55,3 +55,6 @@ secrets.json
 *.db
 *.db-shm
 *.db-wal
+
+# Python verification cache
+__pycache__/
