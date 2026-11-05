@@ -1,0 +1,42 @@
+name: cp3-experiments
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Published full commit SHA for both images
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  experiments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Configure fictional test environment
+        env:
+          IMAGE_TAG: "${{ inputs.image_tag }}"
+        run: python3 tools/cp3-experiments.py --configure
+      - name: Pull and run published images
+        run: |
+          docker compose pull --quiet
+          docker compose up -d --wait --wait-timeout 180
+      - name: Execute E01 to E05 against real containers
+        run: python3 tools/cp3-experiments.py
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cp3-evidence
+          path: artifacts/cp3/
+          retention-days: 30
+          if-no-files-found: warn
