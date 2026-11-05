@@ -10,12 +10,17 @@ Evolução do CP2 (`f3b6721bfeb9c42bd3871b228e8306311234ad60`): relatórios por 
 
 Requer Docker com contêineres Linux e Compose. Copie `.env.example` para `.env`, preencha os cinco valores e use o SHA da versão entregue em `IMAGE_TAG` (consulte `docs/CP3-EVIDENCIAS.md`). Senhas devem ser próprias e não devem ser commitadas. O Admin inicial precisa de e-mail válido e senha compatível com Identity.
 
+Para correção **sem credenciais de registry**, baixe `expensehub-images.tar.gz` da release CP3 identificada no texto de entrega. Ela contém as duas imagens publicadas no GHCR, preservando os nomes e tags originais; não contém banco nem segredos. Carregue as imagens e inicie:
+
 ```shell
-docker compose pull
+docker load -i expensehub-images.tar.gz
+docker compose pull --policy missing
 docker compose up -d
 docker compose ps
 docker compose logs --tail 80 worker
 ```
+
+`--policy missing` preserva as imagens da versão carregadas e baixa RabbitMQ caso necessário. Para quem já possui acesso aos pacotes GHCR, `docker compose pull` também funciona diretamente. O bundle público elimina a necessidade de compartilhar credenciais com o professor. Sua soma SHA-256 acompanha a release.
 
 API: `http://localhost:5245`; RabbitMQ Management: `http://localhost:15672`, com usuário/senha do `.env`. Imagens: `ghcr.io/gardim1/expensehub-web:<SHA>` e `ghcr.io/gardim1/expensehub-worker:<SHA>`. O workflow `cp3-images` executa build, testes e formatação antes de publicar as duas imagens pelo SHA completo. A forma de acesso da versão entregue consta no dossiê.
 

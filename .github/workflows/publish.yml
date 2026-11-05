@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -42,3 +42,13 @@ jobs:
           push: true
           tags: ghcr.io/gardim1/expensehub-worker:${{ github.sha }}
           labels: org.opencontainers.image.revision=${{ github.sha }}
+      - name: Publish image bundle for correction without registry credentials
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          docker pull --quiet ghcr.io/gardim1/expensehub-web:${GITHUB_SHA}
+          docker pull --quiet ghcr.io/gardim1/expensehub-worker:${GITHUB_SHA}
+          docker save ghcr.io/gardim1/expensehub-web:${GITHUB_SHA} ghcr.io/gardim1/expensehub-worker:${GITHUB_SHA} | gzip > expensehub-images.tar.gz
+          sha256sum expensehub-images.tar.gz > expensehub-images.sha256
+          gh release create "cp3-${GITHUB_SHA}" expensehub-images.tar.gz expensehub-images.sha256 --target "${GITHUB_SHA}" --title "ExpenseHub CP3 — ${GITHUB_SHA}" --notes "Duas imagens reais da versão identificada pelo commit. Baixe expensehub-images.tar.gz e execute: docker load -i expensehub-images.tar.gz. Configure .env com este SHA; docker compose pull --policy missing; docker compose up -d. Não contém credenciais nem banco de execução."
