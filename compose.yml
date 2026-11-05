@@ -6,7 +6,7 @@ services:
     hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:?Configure RABBITMQ_USER}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?Configure RABBITMQ_PASSWORD}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
     ports:
       - "127.0.0.1:15672:15672"
     volumes:
@@ -25,7 +25,7 @@ services:
       SeedAdmin__Password: "${SEED_ADMIN_PASSWORD:?Configure SEED_ADMIN_PASSWORD}"
       RabbitMQ__Host: rabbitmq
       RabbitMQ__User: "${RABBITMQ_USER}"
-      RabbitMQ__Password: "${RABBITMQ_PASSWORD}"
+      RabbitMQ__Password: "${RABBITMQ_PASSWORD:?Configure RABBITMQ_PASSWORD}"
       RabbitMQ__Queue: expensehub.reports
       DataProtection__Path: /keys
       Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
@@ -49,7 +49,7 @@ services:
       ConnectionStrings__ExpenseHub: Data Source=/data/expensehub.db;Default Timeout=30
       RabbitMQ__Host: rabbitmq
       RabbitMQ__User: "${RABBITMQ_USER}"
-      RabbitMQ__Password: "${RABBITMQ_PASSWORD}"
+      RabbitMQ__Password: "${RABBITMQ_PASSWORD:?Configure RABBITMQ_PASSWORD}"
       RabbitMQ__Queue: expensehub.reports
       Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
     volumes:
@@ -64,3 +64,4 @@ volumes:
   app-data:
   identity-keys:
   rabbitmq-data:
+
