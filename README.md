@@ -2,6 +2,21 @@
 
 **Vinicius Silva Gardim — RM556013 — 3ESPX — trabalho individual.**
 
+## Entrega CP3 para correção
+
+Todo o material obrigatório está disponível neste repositório e na sua [release pública](https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/tag/cp3-333d0201f2b50366e8536fdfabd0ba3fd3c65833).
+
+| Material solicitado | Acesso |
+|---|---|
+| Código, configuração e instruções | Arquivos deste repositório e instruções abaixo. Versão executada e validada: [`333d020`](https://github.com/gardim1/checkpoint2-expensehub-rm556013/tree/333d0201f2b50366e8536fdfabd0ba3fd3c65833). |
+| Dossiê dos cinco experimentos | [CP3-EVIDENCIAS.md](docs/CP3-EVIDENCIAS.md). |
+| Evidências reais, logs sanitizados e Excel | [Baixar evidências E01–E05](https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/download/cp3-333d0201f2b50366e8536fdfabd0ba3fd3c65833/ExpenseHub-CP3-RM556013-evidencias.zip). |
+| Duas imagens identificadas pelo commit, sem exigir credenciais | [Baixar as imagens publicadas](https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/download/cp3-333d0201f2b50366e8536fdfabd0ba3fd3c65833/expensehub-images.tar.gz) e [SHA-256](https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/download/cp3-333d0201f2b50366e8536fdfabd0ba3fd3c65833/expensehub-images.sha256). |
+| Chamadas HTTP para reprodução | [Reports.http](sources/ExpenseHub.Api/Reports.http). |
+| Fontes compactados, caso solicitados no Teams | [Baixar fontes](https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/download/cp3-333d0201f2b50366e8536fdfabd0ba3fd3c65833/ExpenseHub-CP3-RM556013-fontes.zip). |
+
+Testes da versão validada: **205 aprovados**; experimentos E01–E05: **99 verificações aprovadas**; relatório de qualidade: **100/100**. Os links das execuções e as referências completas das imagens estão no dossiê.
+
 ## CP3 — relatórios em segundo plano
 
 Evolução do CP2 (`f3b6721bfeb9c42bd3871b228e8306311234ad60`): relatórios por período com RabbitMQ, worker C# separado, resultado persistido e download Excel. Não modifica o fluxo de pagamento. Especificação: `Racass/checkpoint-csharpracass-expensehub#11` a `#17`.
