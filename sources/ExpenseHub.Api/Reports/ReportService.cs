@@ -39,14 +39,15 @@ internal sealed class ReportService(IReportStore store, IReportPublisher publish
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            if (logger.IsEnabled(LogLevel.Error)) { logger.LogError("Report registration failed ({ErrorType})", exception.GetType().Name); }
+            logger.LogError("Report registration failed");
             return new ReportCreation(503, null, new ReportError("storage_unavailable", "Não foi possível registrar a solicitação."));
         }
 
         try
         {
             await publisher.PublishAsync(report.Id, cancellationToken);
-            logger.LogInformation("Report {ReportId} publication confirmed", report.Id);
+            if (logger.IsEnabled(LogLevel.Information)) { logger.LogInformation("Report {ReportId} publication confirmed", report.Id); }
+
             return new ReportCreation(202, report.ToResponse(), null);
         }
         catch (Exception exception)
