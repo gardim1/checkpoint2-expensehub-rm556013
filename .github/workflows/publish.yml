@@ -1,0 +1,44 @@
+name: cp3-images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Build without warnings
+        run: dotnet build sources/ExpenseHub.slnx -c Release --warnaserror
+      - name: Unit tests before publishing
+        run: dotnet test sources/ExpenseHub.slnx -c Release --no-build
+      - name: Verify formatting
+        run: dotnet format sources/ExpenseHub.slnx --no-restore --verify-no-changes
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ghcr.io/gardim1/expensehub-web:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.worker
+          push: true
+          tags: ghcr.io/gardim1/expensehub-worker:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
