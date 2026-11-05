@@ -10,25 +10,23 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   experiments:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: "${{ github.actor }}"
-          password: "${{ secrets.GITHUB_TOKEN }}"
       - name: Configure fictional test environment
         env:
           IMAGE_TAG: "${{ inputs.image_tag }}"
         run: python3 tools/cp3-experiments.py --configure
       - name: Pull and run published images
+        env:
+          IMAGE_TAG: "${{ inputs.image_tag }}"
         run: |
-          docker compose pull --quiet
+          curl --fail --silent --show-error --location "https://github.com/gardim1/checkpoint2-expensehub-rm556013/releases/download/cp3-${IMAGE_TAG}/expensehub-images.tar.gz" --output expensehub-images.tar.gz
+          docker load -i expensehub-images.tar.gz
+          docker compose pull --policy missing --quiet
           docker compose up -d --wait --wait-timeout 180
       - name: Execute E01 to E05 against real containers
         run: python3 tools/cp3-experiments.py
