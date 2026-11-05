@@ -1,6 +1,60 @@
-# ExpenseHub — Checkpoint 2 de C#
+# ExpenseHub — Checkpoint 3 de C#
 
 **Vinicius Silva Gardim — RM556013 — 3ESPX — trabalho individual.**
+
+## CP3 — relatórios em segundo plano
+
+Evolução do CP2 (`f3b6721bfeb9c42bd3871b228e8306311234ad60`): relatórios por período com RabbitMQ, worker C# separado, resultado persistido e download Excel. Não modifica o fluxo de pagamento. Especificação: `Racass/checkpoint-csharpracass-expensehub#11` a `#17`.
+
+### Execução com imagens publicadas
+
+Requer Docker com contêineres Linux e Compose. Copie `.env.example` para `.env`, preencha os cinco valores e use o SHA da versão entregue em `IMAGE_TAG` (consulte `docs/CP3-EVIDENCIAS.md`). Senhas devem ser próprias e não devem ser commitadas. O Admin inicial precisa de e-mail válido e senha compatível com Identity.
+
+```shell
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs --tail 80 worker
+```
+
+API: `http://localhost:5245`; RabbitMQ Management: `http://localhost:15672`, com usuário/senha do `.env`. Imagens: `ghcr.io/gardim1/expensehub-web:<SHA>` e `ghcr.io/gardim1/expensehub-worker:<SHA>`. O workflow `cp3-images` executa build, testes e formatação antes de publicar as duas imagens pelo SHA completo. A forma de acesso da versão entregue consta no dossiê.
+
+SQLite usa o mesmo volume `app-data` e o mesmo caminho `/data/expensehub.db` nos dois processos; migrations e seed de roles/Admin são executados pela web. O worker aguarda a saúde da web. O volume `identity-keys` preserva as chaves dos bearer tokens do Identity; `rabbitmq-data` preserva mensagens e configuração do broker. Não remova volumes para testar persistência. Não execute várias réplicas do worker: a implementação exigida e validada usa um consumidor com prefetch 1.
+
+### Contrato dos relatórios
+
+Autentique como na CP2 e use `sources/ExpenseHub.Api/Reports.http`. Não há dados pré-existentes obrigatórios: registre usuários, atribua roles como Admin e faça login novamente. As datas são obrigatórias, `yyyy-MM-dd`, limites inclusivos sobre `ExpenseDate`.
+
+| Operação | Resultado |
+|---|---|
+| `POST /api/reports` com `fromDate`, `toDate`, `scope` | 202 + Location somente após salvar e receber confirmação do broker |
+| `GET /api/reports` | Array das solicitações criadas pelo usuário |
+| `GET /api/reports/{id}` | Envelope com andamento e resultado salvo |
+| `GET /api/reports/{id}/excel` | `.xlsx` real do resultado salvo, somente quando Completed |
+
+`Employee` solicita `Mine`; `Auditor` solicita `Global`; quem tem ambas pode usar ambos. Admin, Approver e Finance não recebem permissão implícita. O servidor define proprietário e identificador; a mensagem carrega apenas `reportId` e o worker usa os filtros do banco. Mesmo Auditor recebe 404 ao consultar ou baixar relatório alheio. Anônimo recebe 401; perfil/escopo negado, 403; entrada inválida, 400; Excel próprio não concluído/Failed, 409.
+
+O resultado inclui `generatedAt`, `totalCount`, `totalAmount` e `byStatus` com Draft, Submitted, Approved, Rejected e Paid, inclusive zeros. Os valores são decimais. Consulta e Excel não recalculam após alterações nos reembolsos. Excel: aba `Report`, metadados nas linhas 1–5, cabeçalhos `Status`, `Count`, `Amount` na linha 7, cinco estados nas linhas 8–12 e total na linha 13. Contagens e valores são células numéricas; MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, attachment `report-{id}.xlsx`. ClosedXML usa licença MIT.
+
+### Confiabilidade e limites
+
+Fila `expensehub.reports`, durável, mensagens persistentes com `{"reportId":"<guid>"}`. O publisher usa `mandatory` e publisher confirms. Estados: Pending → Processing → Completed ou Failed; instantes UTC e erros sanitizados. Resultado e conclusão são salvos juntos em `SaveChanges`; só então o worker confirma consumo. Logs correlacionam publicação, início, conclusão, duplicata e ack pelo id.
+
+Ao reencontrar Completed/Failed, o worker confirma sem novo efeito; a proteção está no banco. Uma reentrega de Processing retoma o cálculo, sem ignorar permanentemente trabalho interrompido. Falhas definitivas nos dados persistidos resultam em Failed; payload inválido é rejeitado sem requeue. Falhas transitórias de armazenamento/transportes não são confirmadas como sucesso e permitem reentrega. Não há garantia de processamento exatamente uma vez ou escala concorrente.
+
+Sem outbox, salvar e publicar são operações distintas. Banco indisponível antes do registro retorna 503 sem id. Publicação sem confirmação depois do registro retorna 503 com id persistido e `publication_unconfirmed`, mantendo Pending: a mensagem pode existir ou não. Uma queda entre salvar e publicar pode deixar Pending sem mensagem; reiniciar o worker não recria mensagem inexistente. Novo POST cria outro id. Worker parado com broker disponível permite 202 e espera na fila; broker indisponível é outra falha.
+
+### Validação e entrega CP3
+
+```shell
+dotnet test sources/ExpenseHub.slnx
+dotnet build sources/ExpenseHub.slnx --warnaserror
+dotnet format sources/ExpenseHub.slnx --verify-no-changes
+```
+
+Os testes unitários de relatórios usam fakes, sem banco, rede ou RabbitMQ reais. Cobrem período, cálculo Mine/Global, vazio, perfis, propriedade, falha de publicação/armazenamento, retomada, duplicata terminal e Excel fiel ao resultado salvo. Experimentos operacionais e versão das imagens ficam em `docs/CP3-EVIDENCIAS.md`; script `tools/cp3-experiments.py`. LinkedIn não faz parte desta entrega individual.
+
+As seções abaixo documentam a base CP2 preservada.
 
 API de reembolsos corporativos com cadastro HTTP, autenticação bearer do ASP.NET Core Identity, roles acumuláveis, rascunhos, aprovação/reprovação, pagamento simulado e histórico persistido. Não há frontend nem movimentação financeira real.
 

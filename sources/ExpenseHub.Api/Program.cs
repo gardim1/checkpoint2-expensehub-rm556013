@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading.Tasks;
 using ExpenseHub.Api.Admin;
 using ExpenseHub.Api.Auth;
@@ -5,6 +6,7 @@ using ExpenseHub.Api.Data;
 using ExpenseHub.Api.Expenses;
 using ExpenseHub.Api.Reports;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +23,11 @@ internal static class Program
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         builder.Services.AddOpenApi();
         builder.Services.AddProblemDetails();
+        if (builder.Configuration["DataProtection:Path"] is string keysPath)
+        {
+            builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath)).SetApplicationName("ExpenseHub");
+        }
+
         builder.Services.AddDbContext<ExpenseHubDbContext>(options =>
             options.UseSqlite(builder.Configuration.GetConnectionString("ExpenseHub")));
         builder.Services.AddAuthentication(IdentityConstants.BearerScheme)

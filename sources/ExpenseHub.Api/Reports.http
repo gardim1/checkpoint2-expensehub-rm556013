@@ -1,0 +1,56 @@
+@host = http://localhost:5245
+@email = {{$processEnv EXPENSEHUB_EMPLOYEE_EMAIL}}
+@password = {{$processEnv EXPENSEHUB_EMPLOYEE_PASSWORD}}
+@reportId = replace-with-id-from-create-response
+
+### Faça login após atribuir Employee (ou Auditor para Global).
+# @name reportLogin
+POST {{host}}/login
+Content-Type: application/json
+
+{"email":"{{email}}","password":"{{password}}"}
+
+### Solicitar (sem ownerId no corpo)
+# @name createReport
+POST {{host}}/api/reports
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+Content-Type: application/json
+
+{"fromDate":"2026-09-01","toDate":"2026-09-30","scope":"Mine"}
+
+### Listar somente próprias
+GET {{host}}/api/reports
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+
+### Acompanhar o MESMO id
+GET {{host}}/api/reports/{{createReport.response.body.id}}
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+
+### Download Excel (salve a resposta como .xlsx)
+GET {{host}}/api/reports/{{createReport.response.body.id}}/excel
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+
+### Employee não pode Global (403)
+POST {{host}}/api/reports
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+Content-Type: application/json
+
+{"fromDate":"2026-09-01","toDate":"2026-09-30","scope":"Global"}
+
+### Período inválido (400)
+POST {{host}}/api/reports
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+Content-Type: application/json
+
+{"fromDate":"2026-09-30","toDate":"2026-09-01","scope":"Mine"}
+
+### Anônimo (401)
+GET {{host}}/api/reports
+
+### Id alheio/inexistente (404); substitua reportId por id criado por outro usuário
+GET {{host}}/api/reports/{{reportId}}
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
+
+### Excel alheio (404)
+GET {{host}}/api/reports/{{reportId}}/excel
+Authorization: Bearer {{reportLogin.response.body.accessToken}}
