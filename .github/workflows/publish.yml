@@ -43,7 +43,6 @@ jobs:
           tags: ghcr.io/gardim1/expensehub-worker:${{ github.sha }}
           labels: org.opencontainers.image.revision=${{ github.sha }}
       - name: Publish image bundle for correction without registry credentials
-        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
